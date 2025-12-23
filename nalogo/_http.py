@@ -5,6 +5,7 @@ Based on PHP library's AuthenticationPlugin and HTTP architecture.
 
 import asyncio
 from abc import ABC, abstractmethod
+from http import HTTPStatus
 from typing import Any
 
 import httpx
@@ -132,7 +133,7 @@ class AsyncHTTPClient:
             response = await client.request(**request_kwargs)
 
             # Handle 401 with token refresh (max 1 retry)
-            if response.status_code == 401:
+            if response.status_code == HTTPStatus.UNAUTHORIZED:
                 # Build request object for retry
                 request = client.build_request(**request_kwargs)
                 retry_response = await self._handle_401_response(client, request)

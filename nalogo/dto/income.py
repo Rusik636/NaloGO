@@ -101,6 +101,7 @@ class IncomeServiceItem(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match PHP jsonSerialize format."""
+        _ = kwargs
         return {
             "name": self.name,
             "amount": str(self.amount),
@@ -125,6 +126,7 @@ class IncomeClient(BaseModel):
     @classmethod
     def validate_inn(cls, v: str | None, info: Any) -> str | None:
         """Validate INN format for legal entities."""
+        _ = info
         if v is None:
             return v
 
@@ -149,6 +151,7 @@ class IncomeClient(BaseModel):
         cls, v: str | None, info: Any
     ) -> str | None:
         """Validate display name is provided for legal entities."""
+        _ = info
         # Note: This validation is applied in the API layer in PHP,
         # but we can do basic validation here
         if v is not None:
@@ -159,6 +162,7 @@ class IncomeClient(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match PHP jsonSerialize format."""
+        _ = kwargs
         return {
             "contactPhone": self.contact_phone,
             "displayName": self.display_name,
@@ -191,6 +195,7 @@ class IncomeRequest(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match PHP request format."""
+        _ = kwargs
         return {
             "operationTime": self.operation_time.serialize_datetime(
                 self.operation_time.value
@@ -228,6 +233,7 @@ class CancelRequest(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match PHP request format."""
+        _ = kwargs
         return {
             "operationTime": self.operation_time.serialize_datetime(
                 self.operation_time.value

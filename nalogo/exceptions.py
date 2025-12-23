@@ -4,13 +4,15 @@ Mirrors PHP library's exception hierarchy and error handling.
 """
 
 import logging
+import re
+from http import HTTPStatus
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
 
-class DomainException(Exception):
+class DomainException(Exception):  # noqa: N818 для совместимости публичного API
     """Base domain exception for all Moy Nalog API errors."""
 
     def __init__(self, message: str, response: httpx.Response | None = None):
@@ -39,8 +41,6 @@ class DomainException(Exception):
     def _mask_sensitive_url(self, url: str) -> str:
         """Mask potential sensitive data in URL."""
         # Replace tokens/keys with asterisks
-        import re
-
         patterns = [
             (r"(token=)[^&]*", r"\1***"),
             (r"(key=)[^&]*", r"\1***"),
@@ -69,8 +69,6 @@ class DomainException(Exception):
         try:
             body = response.text[:1000]  # Limit body size for logging
             # Mask potential tokens in JSON responses
-            import re
-
             patterns = [
                 (r'("token":\s*")[^"]*(")', r"\1***\2"),
                 (r'("refreshToken":\s*")[^"]*(")', r"\1***\2"),
@@ -138,23 +136,23 @@ def raise_for_status(response: httpx.Response) -> None:
     Raises:
         DomainException: Appropriate exception for status code
     """
-    if response.status_code < 400:
+    if response.status_code < HTTPStatus.BAD_REQUEST:
         return
 
     body = response.text
 
-    if response.status_code == 400:
+    if response.status_code == HTTPStatus.BAD_REQUEST:
         raise ValidationException(body, response)
-    if response.status_code == 401:
+    if response.status_code == HTTPStatus.UNAUTHORIZED:
         raise UnauthorizedException(body, response)
-    if response.status_code == 403:
+    if response.status_code == HTTPStatus.FORBIDDEN:
         raise ForbiddenException(body, response)
-    if response.status_code == 404:
+    if response.status_code == HTTPStatus.NOT_FOUND:
         raise NotFoundException(body, response)
-    if response.status_code == 406:
+    if response.status_code == HTTPStatus.NOT_ACCEPTABLE:
         raise ClientException("Wrong Accept headers", response)
-    if response.status_code == 422:
+    if response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
         raise PhoneException(body, response)
-    if response.status_code == 500:
+    if response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
         raise ServerException(body, response)
     raise UnknownErrorException(body, response)

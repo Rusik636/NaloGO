@@ -35,6 +35,7 @@ class InvoiceServiceItem(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match API format."""
+        _ = kwargs
         return {
             "name": self.name,
             "amount": str(self.amount),
@@ -60,6 +61,7 @@ class InvoiceClient(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match API format."""
+        _ = kwargs
         return {
             "contactPhone": self.contact_phone,
             "displayName": self.display_name,

@@ -4,8 +4,8 @@ Based on PHP library's Authenticator class.
 """
 
 import json
-import os
 import uuid
+from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
@@ -62,11 +62,14 @@ class AuthProviderImpl(AuthProvider):
 
     def _load_token_from_storage(self) -> None:
         """Load token from file storage."""
-        if not self.storage_path or not os.path.exists(self.storage_path):
+        if not self.storage_path:
+            return
+        storage_path = Path(self.storage_path)
+        if not storage_path.exists():
             return
 
         try:
-            with open(self.storage_path, encoding="utf-8") as f:
+            with storage_path.open(encoding="utf-8") as f:
                 self._token_data = json.load(f)
         except (json.JSONDecodeError, OSError):
             # Ignore errors, token will be None
@@ -77,11 +80,12 @@ class AuthProviderImpl(AuthProvider):
         if not self.storage_path or not self._token_data:
             return
 
+        storage_path = Path(self.storage_path)
         try:
             # Ensure directory exists
-            Path(self.storage_path).parent.mkdir(parents=True, exist_ok=True)
+            storage_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(self.storage_path, "w", encoding="utf-8") as f:
+            with storage_path.open("w", encoding="utf-8") as f:
                 json.dump(self._token_data, f, ensure_ascii=False, indent=2)
         except OSError:
             # Ignore storage errors
@@ -102,7 +106,7 @@ class AuthProviderImpl(AuthProvider):
             self._token_data = json.loads(token_json)
             self._save_token_to_storage()
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid token JSON: {e}")
+            raise ValueError(f"Invalid token JSON: {e}") from e
 
     async def create_new_access_token(self, username: str, password: str) -> str:
         """
@@ -240,7 +244,7 @@ class AuthProviderImpl(AuthProvider):
                 )
 
                 # PHP version only checks for 200 status
-                if response.status_code != 200:
+                if response.status_code != HTTPStatus.OK:
                     return None
 
                 # Store and return new token data

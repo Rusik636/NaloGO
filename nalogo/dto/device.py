@@ -35,6 +35,7 @@ class DeviceInfo(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match PHP jsonSerialize format."""
+        _ = kwargs
         return {
             "sourceType": self.source_type,
             "sourceDeviceId": self.source_device_id,

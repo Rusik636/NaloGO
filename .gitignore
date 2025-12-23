@@ -67,6 +67,7 @@ logs/
 
 # Coverage
 .coverage
+coverage.xml
 htmlcov/
 .pytest_cache/
 .tox/
@@ -75,3 +76,5 @@ htmlcov/
 *.tmp
 *.temp
 .cache/
+
+.pypirc

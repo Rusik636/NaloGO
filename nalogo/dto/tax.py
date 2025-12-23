@@ -20,6 +20,7 @@ class Tax(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Return the raw data dictionary."""
+        _ = kwargs
         return self.data
 
 
@@ -34,6 +35,7 @@ class History(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Return the raw data dictionary."""
+        _ = kwargs
         return self.data
 
 
@@ -69,6 +71,7 @@ class Payment(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Return the raw data dictionary."""
+        _ = kwargs
         return self.data
 
 

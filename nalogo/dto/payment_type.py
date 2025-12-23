@@ -37,6 +37,7 @@ class PaymentType(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match API format."""
+        _ = kwargs
         return {
             "id": self.id,
             "type": self.type,
