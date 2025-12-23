@@ -227,8 +227,11 @@ class TestIncomeAPI:
         income_api = client.income()
 
         # Mock HTTP to avoid real requests - we're testing validation logic
-        with respx.mock(base_url="https://lknpd.nalog.ru/api/v1"), pytest.raises(
-            ValueError, match="Client INN cannot be empty for legal entity"
+        with (
+            respx.mock(base_url="https://lknpd.nalog.ru/api/v1"),
+            pytest.raises(
+                ValueError, match="Client INN cannot be empty for legal entity"
+            ),
         ):
             await income_api.create("Service", 100, 1, client=legal_client)
 
@@ -249,8 +252,11 @@ class TestIncomeAPI:
         income_api = client.income()
 
         # Mock HTTP to avoid real requests - we're testing validation logic
-        with respx.mock(base_url="https://lknpd.nalog.ru/api/v1"), pytest.raises(
-            ValueError, match="Client DisplayName cannot be empty for legal entity"
+        with (
+            respx.mock(base_url="https://lknpd.nalog.ru/api/v1"),
+            pytest.raises(
+                ValueError, match="Client DisplayName cannot be empty for legal entity"
+            ),
         ):
             await income_api.create("Service", 100, 1, client=legal_client)
 
