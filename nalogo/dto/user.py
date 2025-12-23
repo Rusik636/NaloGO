@@ -86,6 +86,7 @@ class UserType(BaseModel):
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Custom serialization to match API format."""
+        _ = kwargs
 
         def serialize_datetime(dt: datetime | None) -> str | None:
             if dt is None:

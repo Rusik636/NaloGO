@@ -24,8 +24,8 @@ from nalogo.dto.income import (
 def authenticated_client():
     """Client with authentication set up."""
     sample_token = {
-        "token": "test_access_token",
-        "refreshToken": "test_refresh_token",
+        "token": "test_access_token_example",
+        "refreshToken": "test_refresh_token_example",
         "profile": {
             "inn": "123456789012",
             "displayName": "Test User",
@@ -227,11 +227,13 @@ class TestIncomeAPI:
         income_api = client.income()
 
         # Mock HTTP to avoid real requests - we're testing validation logic
-        with respx.mock(base_url="https://lknpd.nalog.ru/api/v1"):
-            with pytest.raises(
+        with (
+            respx.mock(base_url="https://lknpd.nalog.ru/api/v1"),
+            pytest.raises(
                 ValueError, match="Client INN cannot be empty for legal entity"
-            ):
-                await income_api.create("Service", 100, 1, client=legal_client)
+            ),
+        ):
+            await income_api.create("Service", 100, 1, client=legal_client)
 
     @pytest.mark.asyncio
     async def test_create_legal_entity_validation_missing_display_name(
@@ -250,11 +252,13 @@ class TestIncomeAPI:
         income_api = client.income()
 
         # Mock HTTP to avoid real requests - we're testing validation logic
-        with respx.mock(base_url="https://lknpd.nalog.ru/api/v1"):
-            with pytest.raises(
+        with (
+            respx.mock(base_url="https://lknpd.nalog.ru/api/v1"),
+            pytest.raises(
                 ValueError, match="Client DisplayName cannot be empty for legal entity"
-            ):
-                await income_api.create("Service", 100, 1, client=legal_client)
+            ),
+        ):
+            await income_api.create("Service", 100, 1, client=legal_client)
 
     @pytest.mark.asyncio
     async def test_cancel_success(self, authenticated_client, cancel_response):

@@ -14,15 +14,9 @@ For real usage, replace mock responses with actual SMS codes and API responses.
 """
 
 import asyncio
+import contextlib
 import logging
 from decimal import Decimal
-
-# Configure logging to see the library's error handling
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
-import contextlib
 
 from nalogo import Client
 from nalogo.dto.income import IncomeClient, IncomeServiceItem, IncomeType
@@ -31,6 +25,11 @@ from nalogo.exceptions import (
     PhoneException,
     UnauthorizedException,
     ValidationException,
+)
+
+# Configure logging to see the library's error handling
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 
@@ -184,22 +183,18 @@ async def error_handling_example():
 
     # Example 1: Authentication error
     with contextlib.suppress(UnauthorizedException):
-        await client.create_new_access_token("invalid_inn", "invalid_password")
+        await client.create_new_access_token(
+            "invalid_inn_example", "invalid_password_example"
+        )
 
     # Example 2: Validation error
-    try:
+    with contextlib.suppress(Exception):
         # This should fail validation
         IncomeServiceItem(name="", amount=Decimal("-100"), quantity=Decimal("0"))
-    except Exception:
-        pass
 
     # Example 3: Phone challenge error
-    try:
+    with contextlib.suppress(PhoneException, DomainException, Exception):
         await client.create_phone_challenge("invalid_phone")
-    except (PhoneException, DomainException):
-        pass
-    except Exception:
-        pass
 
 
 async def token_management_example():

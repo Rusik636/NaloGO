@@ -81,7 +81,7 @@ class TestAuthProviderImpl:
 
             with pytest.raises(UnauthorizedException) as exc_info:
                 await auth_provider.create_new_access_token(
-                    "invalid_inn", "invalid_password"
+                    "invalid_inn_example", "invalid_password_example"
                 )
 
             assert "Invalid credentials" in str(exc_info.value)

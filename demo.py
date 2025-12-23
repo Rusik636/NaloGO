@@ -10,6 +10,7 @@
 """
 
 import asyncio
+import contextlib
 import json
 from decimal import Decimal
 
@@ -29,8 +30,8 @@ async def demo_authentication():
 
     # В реальном коде используйте настоящие учетные данные
     fake_token = {
-        "token": "demo_access_token",
-        "refreshToken": "demo_refresh_token",
+        "token": "demo_access_token_example",
+        "refreshToken": "demo_refresh_token_example",
         "profile": {
             "inn": "123456789012",
             "displayName": "Demo User",
@@ -46,16 +47,16 @@ async def demo_authentication():
 async def demo_income_creation(client: Client):
     """Демонстрация создания чеков."""
 
+    _ = client
+
     # Вместо реальных HTTP запросов покажем структуру данных
-    try:
+    with contextlib.suppress(ValidationException):
         # Создаем объекты для демонстрации валидации
         IncomeServiceItem(
             name="Консультационные услуги",
             amount=Decimal("5000.00"),
             quantity=Decimal("1"),
         )
-    except ValidationException:
-        pass
 
     services = [
         IncomeServiceItem(
@@ -93,29 +94,21 @@ async def demo_error_handling():
 
     # Валидация неверных данных
 
-    try:
+    with contextlib.suppress(ValueError):
         # Пустое название услуги
         IncomeServiceItem(name="", amount=Decimal("100"), quantity=Decimal("1"))
-    except ValueError:
-        pass
 
-    try:
+    with contextlib.suppress(Exception):
         # Отрицательная сумма
         IncomeServiceItem(name="Услуга", amount=Decimal("-100"), quantity=Decimal("1"))
-    except Exception:
-        pass
 
-    try:
+    with contextlib.suppress(Exception):
         # Нулевое количество
         IncomeServiceItem(name="Услуга", amount=Decimal("100"), quantity=Decimal("0"))
-    except Exception:
-        pass
 
-    try:
+    with contextlib.suppress(Exception):
         # Неверный ИНН
         IncomeClient(inn="123")  # Слишком короткий
-    except Exception:
-        pass
 
 
 async def demo_data_serialization():

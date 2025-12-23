@@ -16,8 +16,8 @@ from nalogo.client import Client
 def authenticated_client():
     """Client with authentication set up."""
     sample_token = {
-        "token": "test_access_token",
-        "refreshToken": "test_refresh_token",
+        "token": "test_access_token_example",
+        "refreshToken": "test_refresh_token_example",
         "profile": {
             "inn": "123456789012",
             "displayName": "Test User",
@@ -178,9 +178,10 @@ class TestReceiptAPI:
     @pytest.mark.asyncio
     async def test_receipt_api_uses_user_inn_from_profile(self, authenticated_client):
         """Test that Receipt API uses INN from user profile."""
+        _ = authenticated_client
         # Create client with different INN in profile
         custom_token = {
-            "token": "test_access_token",
+            "token": "test_access_token_example",
             "profile": {
                 "inn": "987654321098",  # Different INN
                 "displayName": "Custom User",
@@ -201,7 +202,7 @@ class TestReceiptAPI:
     async def test_receipt_api_with_custom_base_url(self):
         """Test Receipt API with custom base URL."""
         custom_token = {
-            "token": "test_access_token",
+            "token": "test_access_token_example",
             "profile": {
                 "inn": "123456789012",
                 "displayName": "Test User",
