@@ -4,6 +4,7 @@ Based on PHP library's ApiClient class.
 """
 
 import json
+from datetime import tzinfo
 from typing import Any
 
 from ._http import AsyncHTTPClient
@@ -12,6 +13,7 @@ from .income import IncomeAPI
 from .payment_type import PaymentTypeAPI
 from .receipt import ReceiptAPI
 from .tax import TaxAPI
+from .timezone import resolve_timezone
 from .user import UserAPI
 
 
@@ -36,6 +38,7 @@ class Client:
         storage_path: str | None = None,
         device_id: str | None = None,
         timeout: float = 10.0,
+        timezone: str | tzinfo | None = None,
     ):
         """
         Initialize Moy Nalog API client.
@@ -45,9 +48,17 @@ class Client:
             storage_path: Optional file path for token storage
             device_id: Optional device ID (auto-generated if not provided)
             timeout: HTTP request timeout in seconds
+            timezone: IANA timezone name (e.g. "Asia/Yekaterinburg") or tzinfo
+                used to interpret datetimes passed to the API without an
+                offset, such as operation_time. Defaults to
+                "Europe/Moscow". Receipts are
+                always transmitted in Moscow time regardless of this setting,
+                because that is how the tax authority records them; this only
+                controls what a datetime without an offset is taken to mean.
         """
         self.base_url = base_url
         self.timeout = timeout
+        self.timezone = resolve_timezone(timezone)
 
         # Initialize auth provider
         self.auth_provider = AuthProviderImpl(
@@ -178,7 +189,7 @@ class Client:
         Returns:
             IncomeAPI instance for creating/cancelling receipts
         """
-        return IncomeAPI(self.http_client)
+        return IncomeAPI(self.http_client, timezone=self.timezone)
 
     def receipt(self) -> ReceiptAPI:
         """
