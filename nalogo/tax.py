@@ -27,8 +27,6 @@ class TaxAPI:
         """
         Get current tax information.
 
-        Maps to PHP Tax::get().
-
         Returns:
             Dictionary with current tax data
 
@@ -41,8 +39,6 @@ class TaxAPI:
     async def history(self, oktmo: str | None = None) -> dict[str, Any]:
         """
         Get tax history.
-
-        Maps to PHP Tax::history().
 
         Args:
             oktmo: Optional OKTMO code for filtering
@@ -62,8 +58,6 @@ class TaxAPI:
     ) -> dict[str, Any]:
         """
         Get tax payment records.
-
-        Maps to PHP Tax::payments().
 
         Args:
             oktmo: Optional OKTMO code for filtering

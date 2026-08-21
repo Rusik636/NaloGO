@@ -51,8 +51,6 @@ class ReceiptAPI:
         """
         Get receipt data in JSON format.
 
-        Maps to PHP Receipt::json() method.
-
         Args:
             receipt_uuid: Receipt UUID
 

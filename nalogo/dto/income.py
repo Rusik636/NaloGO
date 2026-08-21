@@ -153,12 +153,10 @@ class IncomeClient(BaseModel):
         if v is None:
             return v
 
-        # Remove any whitespace
         v = v.strip()
         if not v:
             return None
 
-        # Check if it's numeric
         if not v.isdigit():
             raise ValueError("INN must contain only numbers")
 

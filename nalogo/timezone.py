@@ -34,17 +34,9 @@ DEFAULT_INPUT_TIMEZONE = API_TIMEZONE
 
 def resolve_timezone(tz: str | tzinfo | None) -> tzinfo:
     """
-    Resolve a timezone specification to a tzinfo object.
+    Resolve an IANA name, a tzinfo, or None into a tzinfo.
 
-    Args:
-        tz: IANA timezone name (e.g. "Europe/Moscow"), a tzinfo object,
-            or None to use DEFAULT_INPUT_TIMEZONE
-
-    Returns:
-        tzinfo instance
-
-    Raises:
-        TimezoneException: If the name is unknown or the type is unsupported
+    Raises TimezoneException for an unknown name or unsupported type.
     """
     if tz is None:
         return DEFAULT_INPUT_TIMEZONE
@@ -71,13 +63,6 @@ def to_api_timezone(dt: datetime, input_tz: tzinfo) -> datetime:
     labelled with it first. Aware datetimes already identify an instant, so
     ``input_tz`` is ignored for them. Both are then converted to
     :data:`API_TIMEZONE`.
-
-    Args:
-        dt: Datetime to normalize
-        input_tz: Timezone assumed for naive input
-
-    Returns:
-        Timezone-aware datetime in API_TIMEZONE
     """
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=input_tz)
@@ -96,16 +81,8 @@ def parse_datetime(value: datetime | str, input_tz: tzinfo) -> datetime:
         "2025-12-28T12:00:00"         no offset -> read as input_tz
         "2025-12-28"                  midnight in input_tz
 
-    Args:
-        value: Datetime object or ISO 8601 string
-        input_tz: Timezone assumed when the value carries no offset
-
-    Returns:
-        Timezone-aware datetime in API_TIMEZONE
-
-    Raises:
-        DateTimeFormatException: If a string cannot be parsed
-        InputException: If the value is neither a datetime nor a string
+    Raises DateTimeFormatException for an unparseable string, InputException
+    for a value that is neither a datetime nor a string.
     """
     if isinstance(value, datetime):
         return to_api_timezone(value, input_tz)

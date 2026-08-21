@@ -19,13 +19,11 @@ class DomainException(Exception):  # noqa: N818 для совместимост�
         super().__init__(message)
         self.response = response
 
-        # Log the error with response details (without sensitive data)
         if response:
             self._log_error_details(message, response)
 
     def _log_error_details(self, message: str, response: httpx.Response) -> None:
         """Log error details while avoiding sensitive information."""
-        # Mask potential sensitive data in URLs and headers
         safe_url = self._mask_sensitive_url(str(response.url))
         safe_headers = self._mask_sensitive_headers(dict(response.headers))
 

@@ -83,6 +83,9 @@ jobs:
       matrix:
         python-version: ['3.11', '3.12']
     
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -111,6 +114,21 @@ jobs:
         echo "🧪 Running test suite with coverage..."
                   pytest tests/ -v --cov=nalogo --cov-report=xml --cov-report=term-missing --cov-fail-under=80
     
+    - name: Update coverage badge
+      if: >-
+        github.event_name == 'push'
+        && github.ref == 'refs/heads/main'
+        && matrix.python-version == '3.11'
+      run: |
+        python scripts/coverage_badge.py coverage.svg
+        if ! git diff --quiet --exit-code coverage.svg; then
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add coverage.svg
+          git commit -m "chore: обновление бейджа покрытия"
+          git push
+        fi
+
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.11'
       uses: codecov/codecov-action@v4
