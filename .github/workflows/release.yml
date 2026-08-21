@@ -86,38 +86,41 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'workflow_dispatch'
-    
+
+    # Trusted Publishing: PyPI доверяет этому workflow по OIDC-токену,
+    # секреты с API-токенами не нужны. Настраивается на стороне PyPI,
+    # в разделе Publishing проекта.
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/nalogo/
+    permissions:
+      id-token: write
+
     steps:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: release-packages
         path: dist/
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install twine
-      run: |
-        python -m pip install --upgrade pip
-        pip install twine
-    
+
     - name: Publish to Test PyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-      run: |
-        echo "🚀 Publishing to Test PyPI..."
-        twine upload --repository testpypi dist/*
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
 
   release-pypi:
     name: Release to PyPI
     runs-on: ubuntu-latest
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
-    
+
+    environment:
+      name: pypi
+      url: https://pypi.org/project/nalogo/
+    permissions:
+      id-token: write   # OIDC-токен для Trusted Publishing
+      contents: write   # создание GitHub Release
+
     steps:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
@@ -125,44 +128,21 @@ jobs:
         name: release-packages
         path: dist/
     
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install twine
-      run: |
-        python -m pip install --upgrade pip
-        pip install twine
-    
     - name: Publish to PyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: |
-        echo "🚀 Publishing to PyPI..."
-        twine upload dist/*
+      uses: pypa/gh-action-pypi-publish@release/v1
     
+    # actions/create-release@v1 заархивирован и работает на Node 12,
+    # который GitHub-раннеры больше не запускают. gh идёт в образе раннера.
     - name: Create GitHub Release
-      uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        body: |
-          Release ${{ github.ref_name }}
-          
-          ## What's Changed
-          - See CHANGELOG.md for detailed changes
-          
-          ## Installation
-          ```bash
-          pip install nalogo
-          ```
-          
-          ## Documentation
-          - [README.md](README.md)
-          - [Examples](examples/)
-        draft: false
-        prerelease: false
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        version="${GITHUB_REF_NAME#v}"   # тег v1.1.0 -> версия пакета 1.1.0
+        gh release create "${{ github.ref_name }}" dist/* \
+          --title "Release ${{ github.ref_name }}" \
+          --notes "Изменения — в [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
+
+        Установка:
+        \`\`\`bash
+        pip install nalogo==$version
+        \`\`\`"
