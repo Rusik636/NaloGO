@@ -5,7 +5,7 @@ Based on PHP library's DTO and Enum classes.
 
 from datetime import datetime, tzinfo
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer, field_validator
@@ -19,7 +19,7 @@ from ..timezone import (
 )
 
 
-class IncomeType(str, Enum):
+class IncomeType(StrEnum):
     """Income type enumeration. Maps to PHP Enum\\IncomeType."""
 
     FROM_INDIVIDUAL = "FROM_INDIVIDUAL"
@@ -27,14 +27,14 @@ class IncomeType(str, Enum):
     FROM_FOREIGN_AGENCY = "FROM_FOREIGN_AGENCY"
 
 
-class PaymentType(str, Enum):
+class PaymentType(StrEnum):
     """Payment type enumeration. Maps to PHP Enum\\PaymentType."""
 
     CASH = "CASH"
     ACCOUNT = "ACCOUNT"
 
 
-class CancelCommentType(str, Enum):
+class CancelCommentType(StrEnum):
     """Cancel comment type enumeration. Maps to PHP Enum\\CancelCommentType."""
 
     CANCEL = "Чек сформирован ошибочно"
