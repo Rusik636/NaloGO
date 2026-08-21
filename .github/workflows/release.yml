@@ -138,7 +138,10 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         version="${GITHUB_REF_NAME#v}"   # тег v1.1.0 -> версия пакета 1.1.0
+        # --repo обязателен: job не делает checkout, git-репозитория в
+        # рабочем каталоге нет, и gh не смог бы определить репозиторий сам
         gh release create "${{ github.ref_name }}" dist/* \
+          --repo "${{ github.repository }}" \
           --title "Release ${{ github.ref_name }}" \
           --notes "Изменения — в [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
 
