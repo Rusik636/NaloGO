@@ -5,7 +5,7 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/),
 и проект следует [Semantic Versioning](https://semver.org/lang/ru/).
 
-## [Unreleased]
+## [1.1.0] - 2026-08-21
 
 ### Исправлено
 - **Часовой пояс чеков** — время операции больше не переводится принудительно
