@@ -26,8 +26,6 @@ class PaymentTypeAPI:
         """
         Get all available payment types.
 
-        Maps to PHP PaymentType::table().
-
         Returns:
             List of payment type dictionaries with bank information
 

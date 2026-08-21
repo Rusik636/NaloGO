@@ -56,7 +56,6 @@ class AuthProviderImpl(AuthProvider):
             "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
         }
 
-        # Load token from storage if available
         if self.storage_path:
             self._load_token_from_storage()
 
@@ -82,7 +81,6 @@ class AuthProviderImpl(AuthProvider):
 
         storage_path = Path(self.storage_path)
         try:
-            # Ensure directory exists
             storage_path.parent.mkdir(parents=True, exist_ok=True)
 
             with storage_path.open("w", encoding="utf-8") as f:
@@ -140,7 +138,6 @@ class AuthProviderImpl(AuthProvider):
 
             raise_for_status(response)
 
-            # Store and return token
             token_json = response.text
             await self.set_token(token_json)
             return token_json
@@ -212,7 +209,6 @@ class AuthProviderImpl(AuthProvider):
 
             raise_for_status(response)
 
-            # Store and return token
             token_json = response.text
             await self.set_token(token_json)
             return token_json
@@ -247,7 +243,6 @@ class AuthProviderImpl(AuthProvider):
                 if response.status_code != HTTPStatus.OK:
                     return None
 
-                # Store and return new token data
                 token_json = response.text
                 await self.set_token(token_json)
                 return self._token_data

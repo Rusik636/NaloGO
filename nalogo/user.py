@@ -25,8 +25,6 @@ class UserAPI:
         """
         Get current user information.
 
-        Maps to PHP User::get().
-
         Returns:
             Dictionary with user profile data including:
             - id, inn, displayName, email, phone

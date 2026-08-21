@@ -58,8 +58,6 @@ class IncomeAPI:
         """
         Create income receipt with single service item.
 
-        Maps to PHP Income::create() method.
-
         Args:
             name: Service name/description
             amount: Service amount (converted to Decimal)
@@ -78,7 +76,6 @@ class IncomeAPI:
             ValidationException: For validation errors
             DomainException: For other API errors
         """
-        # Convert to IncomeServiceItem
         service_item = IncomeServiceItem(
             name=name,
             amount=Decimal(str(amount)),
@@ -99,8 +96,6 @@ class IncomeAPI:
     ) -> dict[str, Any]:
         """
         Create income receipt with multiple service items.
-
-        Maps to PHP Income::createMultipleItems() method.
 
         Args:
             services: List of service items
@@ -133,7 +128,6 @@ class IncomeAPI:
 
         tz = self.timezone if timezone is None else resolve_timezone(timezone)
 
-        # Create request object
         request = IncomeRequest(
             operation_time=(
                 AtomDateTime.from_datetime(operation_time, tz)
@@ -148,7 +142,6 @@ class IncomeAPI:
             ignore_max_total_income_restriction=False,
         )
 
-        # Make API request
         response = await self.http.post("/income", json_data=request.model_dump())
         return response.json()  # type: ignore[no-any-return]
 
@@ -164,8 +157,6 @@ class IncomeAPI:
     ) -> dict[str, Any]:
         """
         Cancel income receipt.
-
-        Maps to PHP Income::cancel() method.
 
         Args:
             receipt_uuid: Receipt UUID to cancel
@@ -184,13 +175,10 @@ class IncomeAPI:
             ValidationException: For validation errors (empty UUID, invalid comment)
             DomainException: For other API errors
         """
-        # Validate receipt UUID
         if not receipt_uuid.strip():
             raise ValueError("Receipt UUID cannot be empty")
 
-        # Convert comment to enum if string
         if isinstance(comment, str):
-            # Try to find matching enum value
             comment_enum = None
             for enum_val in CancelCommentType:
                 if enum_val.value == comment:
@@ -207,7 +195,6 @@ class IncomeAPI:
 
         tz = self.timezone if timezone is None else resolve_timezone(timezone)
 
-        # Create request object
         request = CancelRequest(
             operation_time=(
                 AtomDateTime.from_datetime(operation_time, tz)
@@ -224,6 +211,5 @@ class IncomeAPI:
             partner_code=partner_code,
         )
 
-        # Make API request
         response = await self.http.post("/cancel", json_data=request.model_dump())
         return response.json()  # type: ignore[no-any-return]

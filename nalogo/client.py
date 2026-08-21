@@ -60,14 +60,12 @@ class Client:
         self.timeout = timeout
         self.timezone = resolve_timezone(timezone)
 
-        # Initialize auth provider
         self.auth_provider = AuthProviderImpl(
             base_url=base_url,
             storage_path=storage_path,
             device_id=device_id,
         )
 
-        # Initialize HTTP client with auth middleware
         self.http_client = AsyncHTTPClient(
             base_url=f"{base_url}/v1",
             auth_provider=self.auth_provider,
@@ -87,8 +85,6 @@ class Client:
         """
         Create new access token using INN and password.
 
-        Maps to PHP ApiClient::createNewAccessToken().
-
         Args:
             username: INN (tax identification number)
             password: Password
@@ -106,8 +102,6 @@ class Client:
         """
         Start phone-based authentication challenge.
 
-        Maps to PHP ApiClient::createPhoneChallenge().
-
         Args:
             phone: Phone number (e.g., "79000000000")
 
@@ -124,8 +118,6 @@ class Client:
     ) -> str:
         """
         Complete phone-based authentication with SMS code.
-
-        Maps to PHP ApiClient::createNewAccessTokenByPhone().
 
         Args:
             phone: Phone number
@@ -146,8 +138,6 @@ class Client:
     async def authenticate(self, access_token: str) -> None:
         """
         Authenticate client with access token.
-
-        Maps to PHP ApiClient::authenticate().
 
         Args:
             access_token: JSON string with token data
@@ -170,8 +160,6 @@ class Client:
         """
         Get current access token (may be refreshed).
 
-        Maps to PHP ApiClient::getAccessToken().
-
         Returns:
             Current access token JSON string or None
         """
@@ -184,8 +172,6 @@ class Client:
         """
         Get Income API instance.
 
-        Maps to PHP ApiClient::income().
-
         Returns:
             IncomeAPI instance for creating/cancelling receipts
         """
@@ -194,8 +180,6 @@ class Client:
     def receipt(self) -> ReceiptAPI:
         """
         Get Receipt API instance.
-
-        Maps to PHP ApiClient::receipt().
 
         Returns:
             ReceiptAPI instance for accessing receipt data
@@ -216,8 +200,6 @@ class Client:
         """
         Get PaymentType API instance.
 
-        Maps to PHP ApiClient::paymentType().
-
         Returns:
             PaymentTypeAPI instance for managing payment methods
         """
@@ -227,8 +209,6 @@ class Client:
         """
         Get Tax API instance.
 
-        Maps to PHP ApiClient::tax().
-
         Returns:
             TaxAPI instance for tax information and history
         """
@@ -237,8 +217,6 @@ class Client:
     def user(self) -> UserAPI:
         """
         Get User API instance.
-
-        Maps to PHP ApiClient::user().
 
         Returns:
             UserAPI instance for user information

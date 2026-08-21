@@ -56,11 +56,11 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/your-org/nalogo"
-"Documentation" = "https://github.com/your-org/nalogo#readme"
-"Repository" = "https://github.com/your-org/nalogo"
-"Bug Reports" = "https://github.com/your-org/nalogo/issues"
-"Changelog" = "https://github.com/your-org/nalogo/blob/main/CHANGELOG.md"
+"Homepage" = "https://github.com/Rusik636/nalogo"
+"Documentation" = "https://github.com/Rusik636/nalogo#readme"
+"Repository" = "https://github.com/Rusik636/nalogo"
+"Bug Reports" = "https://github.com/Rusik636/nalogo/issues"
+"Changelog" = "https://github.com/Rusik636/nalogo/blob/main/CHANGELOG.md"
 "Original PHP Library" = "https://github.com/shoman4eg/moy-nalog"
 
 [tool.setuptools.packages.find]

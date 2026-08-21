@@ -78,7 +78,6 @@ class AsyncHTTPClient:
             if not new_token_data or "token" not in new_token_data:
                 return None
 
-            # Update request with new authorization header
             new_auth_headers = {"Authorization": f"Bearer {new_token_data['token']}"}
             request.headers.update(new_auth_headers)
 
@@ -109,14 +108,12 @@ class AsyncHTTPClient:
         Raises:
             Domain exceptions via raise_for_status()
         """
-        # Prepare headers
         request_headers = self.default_headers.copy()
         auth_headers = await self._get_auth_headers()
         request_headers.update(auth_headers)
         if headers:
             request_headers.update(headers)
 
-        # Prepare request parameters
         request_kwargs = {
             "method": method,
             "url": self.base_url + path,
@@ -129,18 +126,15 @@ class AsyncHTTPClient:
             request_kwargs["json"] = json_data
 
         async with httpx.AsyncClient() as client:
-            # Initial request
             response = await client.request(**request_kwargs)
 
             # Handle 401 with token refresh (max 1 retry)
             if response.status_code == HTTPStatus.UNAUTHORIZED:
-                # Build request object for retry
                 request = client.build_request(**request_kwargs)
                 retry_response = await self._handle_401_response(client, request)
                 if retry_response is not None:
                     response = retry_response
 
-            # Check for domain exceptions
             raise_for_status(response)
 
             return response
