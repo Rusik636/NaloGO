@@ -1,6 +1,8 @@
 default_language_version:
   python: python3.11
 
+# Версии хуков держим совпадающими с requirements-dev.txt, иначе локальная
+# проверка и CI будут расходиться в вердиктах.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -25,12 +27,12 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/psf/black
-    rev: 25.9.0
+    rev: 26.5.1
     hooks:
       - id: black
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
+    rev: v2.3.1
     hooks:
       - id: mypy
         files: ^nalogo/

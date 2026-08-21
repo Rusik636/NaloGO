@@ -1,24 +1,33 @@
 # Development dependencies for NaloGO library
 # Install with: pip install -r requirements-dev.txt
+#
+# Версии зафиксированы точно и намеренно: это окружение, в котором работает CI.
+# Линтеры и форматтеры меняют вердикт от версии к версии — незакреплённый ruff
+# однажды покрасил сборку правилом UP042, появившимся без единой правки в коде.
+# Диапазоны совместимости для пользователей библиотеки живут в pyproject.toml,
+# в extras [dev]; здесь — воспроизводимая сборка.
+#
+# Обновлять осознанно: поднять версию, прогнать полный набор проверок,
+# при необходимости починить новые замечания и закоммитить одним изменением.
 
 # Core dependencies
 -r requirements.txt
 
 # Testing
-pytest>=7.0.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
-respx>=0.20.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+respx==0.23.1
+coverage==7.15.3
 
-# Code quality
-ruff>=0.1.0
-black>=23.0.0
-mypy>=1.0.0
-coverage>=7.0.0
+# Code quality — вердикт зависит от версии, поэтому строго ==
+ruff==0.16.4
+black==26.5.1
+mypy==2.3.1
 
 # Security
-bandit[toml]>=1.7.0
+bandit[toml]==1.9.4
 
 # Packaging
-build>=1.0.0
-twine>=4.0.0
+build==1.5.0
+twine==7.0.0

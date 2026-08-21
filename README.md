@@ -696,8 +696,9 @@ source .venv/bin/activate  # Linux/Mac
 # или
 .venv\Scripts\activate     # Windows
 
-# Установка в режиме разработки
-pip install -e ".[dev]"
+# Установка в режиме разработки с версиями инструментов как в CI
+pip install -r requirements-dev.txt
+pip install -e . --no-deps
 
 # Настройка pre-commit хуков
 pre-commit install
