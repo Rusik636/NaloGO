@@ -3,7 +3,7 @@ Income API implementation.
 Based on PHP library's Api\\Income class.
 """
 
-from datetime import datetime
+from datetime import datetime, tzinfo
 from decimal import Decimal
 from typing import Any
 
@@ -18,6 +18,7 @@ from .dto.income import (
     IncomeType,
     PaymentType,
 )
+from .timezone import resolve_timezone
 
 
 class IncomeAPI:
@@ -31,16 +32,28 @@ class IncomeAPI:
     Maps to PHP Api\\Income functionality.
     """
 
-    def __init__(self, http_client: AsyncHTTPClient):
+    def __init__(
+        self, http_client: AsyncHTTPClient, timezone: str | tzinfo | None = None
+    ):
+        """
+        Args:
+            http_client: Configured async HTTP client
+            timezone: IANA name or tzinfo used to interpret naive datetimes
+                (default: Europe/Moscow). Receipts are always sent in Moscow
+                time; this only controls how offset-less input is read.
+        """
         self.http = http_client
+        self.timezone = resolve_timezone(timezone)
 
     async def create(
         self,
         name: str,
         amount: Decimal | float | int | str,
         quantity: Decimal | float | int | str = 1,
-        operation_time: datetime | None = None,
+        operation_time: datetime | str | None = None,
         client: IncomeClient | None = None,
+        *,
+        timezone: str | tzinfo | None = None,
     ) -> dict[str, Any]:
         """
         Create income receipt with single service item.
@@ -51,8 +64,12 @@ class IncomeAPI:
             name: Service name/description
             amount: Service amount (converted to Decimal)
             quantity: Service quantity (converted to Decimal, default: 1)
-            operation_time: Operation datetime (default: now)
+            operation_time: Operation datetime or ISO 8601 string
+                (e.g. "2025-12-28T12:00:00+10:00"; default: now)
             client: Client information (default: individual client)
+            timezone: Timezone for interpreting an operation_time that has no
+                offset, overriding the client-wide setting for this call.
+                Ignored when the value already carries an offset.
 
         Returns:
             Dictionary with response data including approvedReceiptUuid
@@ -68,13 +85,17 @@ class IncomeAPI:
             quantity=Decimal(str(quantity)),
         )
 
-        return await self.create_multiple_items([service_item], operation_time, client)
+        return await self.create_multiple_items(
+            [service_item], operation_time, client, timezone=timezone
+        )
 
     async def create_multiple_items(
         self,
         services: list[IncomeServiceItem],
-        operation_time: datetime | None = None,
+        operation_time: datetime | str | None = None,
         client: IncomeClient | None = None,
+        *,
+        timezone: str | tzinfo | None = None,
     ) -> dict[str, Any]:
         """
         Create income receipt with multiple service items.
@@ -83,8 +104,12 @@ class IncomeAPI:
 
         Args:
             services: List of service items
-            operation_time: Operation datetime (default: now)
+            operation_time: Operation datetime or ISO 8601 string
+                (e.g. "2025-12-28T12:00:00+10:00"; default: now)
             client: Client information (default: individual client)
+            timezone: Timezone for interpreting an operation_time that has no
+                offset, overriding the client-wide setting for this call.
+                Ignored when the value already carries an offset.
 
         Returns:
             Dictionary with response data including approvedReceiptUuid
@@ -106,14 +131,16 @@ class IncomeAPI:
         # Calculate total amount (mirrors PHP BigDecimal logic)
         total_amount = sum(item.get_total_amount() for item in services)
 
+        tz = self.timezone if timezone is None else resolve_timezone(timezone)
+
         # Create request object
         request = IncomeRequest(
             operation_time=(
-                AtomDateTime.from_datetime(operation_time)
+                AtomDateTime.from_datetime(operation_time, tz)
                 if operation_time
-                else AtomDateTime.now()
+                else AtomDateTime.now(tz)
             ),
-            request_time=AtomDateTime.now(),
+            request_time=AtomDateTime.now(tz),
             services=services,
             total_amount=str(total_amount),
             client=client or IncomeClient(),
@@ -129,9 +156,11 @@ class IncomeAPI:
         self,
         receipt_uuid: str,
         comment: CancelCommentType | str,
-        operation_time: datetime | None = None,
-        request_time: datetime | None = None,
+        operation_time: datetime | str | None = None,
+        request_time: datetime | str | None = None,
         partner_code: str | None = None,
+        *,
+        timezone: str | tzinfo | None = None,
     ) -> dict[str, Any]:
         """
         Cancel income receipt.
@@ -141,9 +170,12 @@ class IncomeAPI:
         Args:
             receipt_uuid: Receipt UUID to cancel
             comment: Cancellation reason (enum or string)
-            operation_time: Operation datetime (default: now)
-            request_time: Request datetime (default: now)
+            operation_time: Operation datetime or ISO 8601 string
+                (e.g. "2025-12-28T12:00:00+10:00"; default: now)
+            request_time: Request datetime or ISO 8601 string (default: now)
             partner_code: Partner code (optional)
+            timezone: Timezone for interpreting datetimes without an offset,
+                overriding the client-wide setting for this call
 
         Returns:
             Dictionary with cancellation response data
@@ -173,17 +205,19 @@ class IncomeAPI:
 
             comment = comment_enum
 
+        tz = self.timezone if timezone is None else resolve_timezone(timezone)
+
         # Create request object
         request = CancelRequest(
             operation_time=(
-                AtomDateTime.from_datetime(operation_time)
+                AtomDateTime.from_datetime(operation_time, tz)
                 if operation_time
-                else AtomDateTime.now()
+                else AtomDateTime.now(tz)
             ),
             request_time=(
-                AtomDateTime.from_datetime(request_time)
+                AtomDateTime.from_datetime(request_time, tz)
                 if request_time
-                else AtomDateTime.now()
+                else AtomDateTime.now(tz)
             ),
             comment=comment,
             receipt_uuid=receipt_uuid.strip(),

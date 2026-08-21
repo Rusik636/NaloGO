@@ -116,6 +116,24 @@ class UnknownErrorException(DomainException):
     """Unknown HTTP error code."""
 
 
+class InputException(DomainException, ValueError):  # noqa: N818
+    """
+    Invalid value passed to the library.
+
+    Unlike the exceptions above, this family is raised locally before any
+    request is made, so ``response`` is always None. Also inherits ValueError,
+    so generic ``except ValueError`` handlers keep working.
+    """
+
+
+class TimezoneException(InputException):
+    """Unusable timezone: unknown IANA name or unsupported type."""
+
+
+class DateTimeFormatException(InputException):
+    """Datetime string that cannot be parsed as ISO 8601."""
+
+
 def raise_for_status(response: httpx.Response) -> None:
     """
     Raise appropriate domain exception based on HTTP status code.

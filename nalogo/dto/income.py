@@ -3,12 +3,20 @@ Income-related DTO models.
 Based on PHP library's DTO and Enum classes.
 """
 
-from datetime import UTC, datetime
+from datetime import datetime, tzinfo
 from decimal import Decimal
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer, field_validator
+
+from ..timezone import (
+    API_TIMEZONE,
+    DEFAULT_INPUT_TIMEZONE,
+    parse_datetime,
+    resolve_timezone,
+    to_api_timezone,
+)
 
 
 class IncomeType(str, Enum):
@@ -37,31 +45,46 @@ class AtomDateTime(BaseModel):
     """
     DateTime wrapper for ISO/ATOM serialization.
     Maps to PHP DTO\\DateTime behavior.
+
+    Values are always serialized in ``API_TIMEZONE`` (Moscow) with their
+    offset, e.g. ``2025-12-28T00:30:00+03:00``. The tax authority reads the
+    wall clock and ignores the offset, so sending any other zone would record
+    the receipt at the wrong time.
     """
 
-    value: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    model_config = {"arbitrary_types_allowed": True}
+
+    value: datetime = Field(default_factory=lambda: datetime.now(API_TIMEZONE))
+    input_tz: tzinfo = Field(default=DEFAULT_INPUT_TIMEZONE, exclude=True)
 
     @field_serializer("value")
     def serialize_datetime(self, dt: datetime) -> str:
-        """Serialize datetime to ATOM format with Z suffix."""
-        # Ensure UTC timezone
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=UTC)
-        elif dt.tzinfo != UTC:
-            dt = dt.astimezone(UTC)
-
-        # Format as ISO with Z suffix (similar to PHP DATE_ATOM)
-        return dt.isoformat().replace("+00:00", "Z")
+        """Serialize to ATOM format in the timezone the API records."""
+        # timespec="seconds" matches PHP's DATE_ATOM, which has no fractions
+        return to_api_timezone(dt, self.input_tz).isoformat(timespec="seconds")
 
     @classmethod
-    def now(cls) -> "AtomDateTime":
-        """Create AtomDateTime with current UTC time."""
-        return cls(value=datetime.now(UTC))
+    def now(cls, tz: str | tzinfo | None = None) -> "AtomDateTime":
+        """
+        Create AtomDateTime for the current moment.
+
+        ``tz`` is accepted for symmetry with :meth:`from_datetime` but does not
+        affect the result: "now" is an unambiguous instant.
+        """
+        return cls(value=datetime.now(API_TIMEZONE), input_tz=resolve_timezone(tz))
 
     @classmethod
-    def from_datetime(cls, dt: datetime) -> "AtomDateTime":
-        """Create AtomDateTime from datetime object."""
-        return cls(value=dt)
+    def from_datetime(
+        cls, dt: datetime | str, tz: str | tzinfo | None = None
+    ) -> "AtomDateTime":
+        """
+        Create AtomDateTime from a datetime object or ISO 8601 string.
+
+        Values without an offset are read as wall clock time in ``tz``; values
+        carrying one ignore it. Both end up in API_TIMEZONE.
+        """
+        input_tz = resolve_timezone(tz)
+        return cls(value=parse_datetime(dt, input_tz), input_tz=input_tz)
 
 
 class IncomeServiceItem(BaseModel):
