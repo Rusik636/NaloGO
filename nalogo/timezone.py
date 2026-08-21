@@ -96,6 +96,5 @@ def parse_datetime(value: datetime | str, input_tz: tzinfo) -> datetime:
             ) from exc
         return to_api_timezone(parsed, input_tz)
     raise InputException(
-        f"Datetime must be a datetime or an ISO 8601 string, "
-        f"got {type(value).__name__}"
+        f"Datetime must be a datetime or an ISO 8601 string, got {type(value).__name__}"
     )

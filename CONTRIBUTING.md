@@ -138,7 +138,7 @@ async def test_create_new_access_token():
         respx.post("https://lknpd.nalog.ru/api/auth/token").mock(
             return_value=httpx.Response(200, json={"token": "test_token"})
         )
-        
+
         # Тест
         client = Client()
         token = await client.create_new_access_token("inn", "password")
@@ -174,14 +174,14 @@ pytest -n auto
 ```python
 async def create_new_access_token(self, inn: str, password: str) -> str:
     """Создает новый токен доступа по ИНН и паролю.
-    
+
     Args:
         inn: ИНН пользователя
         password: Пароль пользователя
-        
+
     Returns:
         Токен доступа
-        
+
     Raises:
         UnauthorizedException: Неверные учетные данные
         ValidationException: Неверный формат данных

@@ -15,7 +15,7 @@
 
 ### Аутентификация
 - **ИНН/пароль** - классическая аутентификация
-- **SMS-аутентификация** - безопасный вход по номеру телефона  
+- **SMS-аутентификация** - безопасный вход по номеру телефона
 - **Автообновление токенов** - прозрачная ротация при истечении
 - **Персистентное хранение** - сохранение токенов в файл
 
@@ -184,13 +184,13 @@ except DomainException:     # плюс все ошибки API
 ```python
 async def auth_with_inn():
     client = Client()
-    
+
     # Получение токена
     token = await client.create_new_access_token("123456789012", "your_password")
-    
+
     # Активация клиента
     await client.authenticate(token)
-    
+
     print("✅ Аутентификация успешна!")
     return client
 ```
@@ -200,24 +200,24 @@ async def auth_with_inn():
 ```python
 async def auth_with_phone():
     client = Client()
-    
+
     # Шаг 1: Запрос SMS кода
     phone = "79001234567"
     challenge = await client.create_phone_challenge(phone)
-    
+
     print(f"📱 SMS код отправлен. Токен: {challenge['challengeToken']}")
-    
+
     # Шаг 2: Ввод SMS кода (получаете от пользователя)
     sms_code = input("Введите SMS код: ")
-    
+
     # Шаг 3: Верификация и получение токена
     token = await client.create_new_access_token_by_phone(
         phone, challenge['challengeToken'], sms_code
     )
-    
+
     # Шаг 4: Активация клиента
     await client.authenticate(token)
-    
+
     print("✅ SMS аутентификация успешна!")
     return client
 ```
@@ -229,18 +229,18 @@ async def auth_with_phone():
 ```python
 async def create_simple_receipt():
     client = await auth_with_inn()  # Предполагаем аутентификацию
-    
+
     income_api = client.income()
-    
+
     result = await income_api.create(
         name="Консультационные услуги",
         amount=5000.00,  # Автоматически конвертируется в Decimal
         quantity=1
     )
-    
+
     receipt_uuid = result["approvedReceiptUuid"]
     print(f"✅ Чек создан: {receipt_uuid}")
-    
+
     return receipt_uuid
 ```
 
@@ -253,7 +253,7 @@ from decimal import Decimal
 async def create_multi_item_receipt():
     client = await auth_with_inn()
     income_api = client.income()
-    
+
     # Создаем позиции
     services = [
         IncomeServiceItem(
@@ -267,13 +267,13 @@ async def create_multi_item_receipt():
             quantity=Decimal("3")  # 3 месяца
         )
     ]
-    
+
     result = await income_api.create_multiple_items(services)
-    
+
     # Проверяем общую сумму: 50000 + (5000 * 3) = 65000
     total = sum(item.amount * item.quantity for item in services)
     print(f"💰 Общая сумма: {total}")
-    
+
     return result["approvedReceiptUuid"]
 ```
 
@@ -285,7 +285,7 @@ from nalogo.dto.income import IncomeClient, IncomeType
 async def create_legal_entity_receipt():
     client = await auth_with_inn()
     income_api = client.income()
-    
+
     # Информация о юридическом лице
     legal_client = IncomeClient(
         contact_phone="+79001234567",
@@ -293,14 +293,14 @@ async def create_legal_entity_receipt():
         income_type=IncomeType.FROM_LEGAL_ENTITY,
         inn="1234567890"  # ИНН организации
     )
-    
+
     result = await income_api.create(
         name="Разработка ПО по договору",
         amount=250000.00,
         quantity=1,
         client=legal_client
     )
-    
+
     print(f"🏢 Корпоративный чек: {result['approvedReceiptUuid']}")
     return result
 ```
@@ -313,15 +313,15 @@ from nalogo.dto.income import CancelCommentType
 async def cancel_receipt():
     client = await auth_with_inn()
     income_api = client.income()
-    
+
     receipt_uuid = "your-receipt-uuid"
-    
+
     result = await income_api.cancel(
         receipt_uuid=receipt_uuid,
         comment_type=CancelCommentType.INCORRECT_DATA,
         request_time=datetime.now(timezone.utc)
     )
-    
+
     print(f"❌ Чек отменен: {result}")
 ```
 
@@ -331,14 +331,14 @@ async def cancel_receipt():
 async def get_receipt_info():
     client = await auth_with_inn()
     receipt_api = client.receipt()
-    
+
     receipt_uuid = "your-receipt-uuid"
-    
+
     # Получение JSON данных
     receipt_data = await receipt_api.json(receipt_uuid)
     print(f"📋 Сумма: {receipt_data.get('totalAmount')}")
     print(f"📅 Дата: {receipt_data.get('operationTime')}")
-    
+
     # Генерация URL для печати
     print_url = receipt_api.print_url(receipt_uuid)
     print(f"🖨️ Печать: {print_url}")
@@ -352,9 +352,9 @@ async def get_receipt_info():
 async def get_user_info():
     client = await auth_with_inn()
     user_api = client.user()
-    
+
     user_data = await user_api.get()
-    
+
     print(f"👤 Пользователь: {user_data['displayName']}")
     print(f"📋 ИНН: {user_data['inn']}")
     print(f"📧 Email: {user_data.get('email', 'Не указан')}")
@@ -367,11 +367,11 @@ async def get_user_info():
 async def manage_payment_types():
     client = await auth_with_inn()
     payment_api = client.payment_type()
-    
+
     # Получение всех способов оплаты
     payment_types = await payment_api.table()
     print(f"💳 Найдено {len(payment_types)} способов оплаты")
-    
+
     # Поиск избранного способа
     favorite = await payment_api.favorite()
     if favorite:
@@ -386,15 +386,15 @@ async def manage_payment_types():
 async def get_tax_info():
     client = await auth_with_inn()
     tax_api = client.tax()
-    
+
     # Текущие налоги
     tax_data = await tax_api.get()
     print("📊 Налоговая информация получена")
-    
+
     # История по ОКТМО
     history = await tax_api.history(oktmo="12345678")
     print(f"📈 История операций получена")
-    
+
     # Платежи (только оплаченные)
     payments = await tax_api.payments(oktmo="12345678", only_paid=True)
     print(f"💸 История платежей получена")
@@ -450,7 +450,7 @@ async def safe_operation():
         client = Client()
         token = await client.create_new_access_token("inn", "password")
         await client.authenticate(token)
-        
+
     except UnauthorizedException:
         print("❌ Неверный ИНН или пароль")
     except ValidationException as e:
@@ -508,7 +508,7 @@ class CustomHTTPClient(AsyncHTTPClient):
         super().__init__(*args, **kwargs)
         # Увеличиваем таймаут
         self._client.timeout = 60.0
-        
+
 # Использование
 client = Client()
 client.http_client = CustomHTTPClient("https://lknpd.nalog.ru/api")
@@ -615,21 +615,21 @@ async def migrate_from_php():
     # 1. Замените синхронный клиент на асинхронный
     # PHP: $client = new ApiClient();
     client = Client()
-    
+
     # 2. Добавьте await ко всем API вызовам
     # PHP: $token = $client->createNewAccessToken($inn, $password);
     token = await client.create_new_access_token(inn, password)
-    
+
     # 3. Замените ассоциативные массивы на объекты DTO
     # PHP: $client = ['contactPhone' => $phone, ...];
     from nalogo.dto.income import IncomeClient
     client_data = IncomeClient(contact_phone=phone, ...)
-    
+
     # 4. Используйте Decimal для денежных операций
     # PHP: $amount = 100.50;
     from decimal import Decimal
     amount = Decimal("100.50")
-    
+
     # 5. Обновите обработку исключений
     # PHP: catch (DomainException $e)
     # Python: except DomainException as e
@@ -655,16 +655,16 @@ from nalogo import Client
 async def bulk_receipts():
     client = await auth_with_inn()
     income_api = client.income()
-    
+
     # Создание множества чеков параллельно
     tasks = []
     for i in range(100):
         task = income_api.create(f"Услуга {i}", 1000.00, 1)
         tasks.append(task)
-    
+
     # Выполнение всех задач параллельно
     results = await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     success_count = sum(1 for r in results if not isinstance(r, Exception))
     print(f"✅ Создано {success_count} из {len(tasks)} чеков")
 ```
@@ -700,7 +700,7 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r requirements-dev.txt
 pip install -e . --no-deps
 
-# Настройка pre-commit хуков
+# Настройка pre-commit хуков (перезапишет старый самописный хук, если он есть)
 pre-commit install
 ```
 

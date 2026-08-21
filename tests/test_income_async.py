@@ -297,7 +297,8 @@ class TestIncomeAPI:
 
             income_api = client.income()
             await income_api.cancel(
-                "test-receipt-uuid-123", "Возврат средств"  # String instead of enum
+                "test-receipt-uuid-123",
+                "Возврат средств",  # String instead of enum
             )
 
             # Verify request contains correct comment
