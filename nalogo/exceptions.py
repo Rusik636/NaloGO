@@ -6,10 +6,29 @@ Mirrors PHP library's exception hierarchy and error handling.
 import logging
 import re
 from http import HTTPStatus
+from typing import Never
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+_URL_SECRET_PATTERNS = [
+    (r"(token=)[^&]*", r"\1***"),
+    (r"(key=)[^&]*", r"\1***"),
+    (r"(secret=)[^&]*", r"\1***"),
+]
+
+
+def mask_url(url: str) -> str:
+    """
+    Mask secrets that may appear in a URL query string.
+
+    Module-level so that every logging path can reuse it, including the
+    transport-error path that has no response object to work from.
+    """
+    for pattern, replacement in _URL_SECRET_PATTERNS:
+        url = re.sub(pattern, replacement, url)
+    return url
 
 
 class DomainException(Exception):  # noqa: N818 для совместимости публичного API
@@ -38,16 +57,7 @@ class DomainException(Exception):  # noqa: N818 для совместимост�
 
     def _mask_sensitive_url(self, url: str) -> str:
         """Mask potential sensitive data in URL."""
-        # Replace tokens/keys with asterisks
-        patterns = [
-            (r"(token=)[^&]*", r"\1***"),
-            (r"(key=)[^&]*", r"\1***"),
-            (r"(secret=)[^&]*", r"\1***"),
-        ]
-
-        for pattern, replacement in patterns:
-            url = re.sub(pattern, replacement, url)
-        return url
+        return mask_url(url)
 
     def _mask_sensitive_headers(self, headers: dict[str, str]) -> dict[str, str]:
         """Mask sensitive headers."""
@@ -102,16 +112,129 @@ class ClientException(DomainException):
     """HTTP 406 - Client error (e.g., wrong Accept headers)."""
 
 
-class PhoneException(DomainException):
-    """HTTP 422 - Phone-related error (SMS, verification, etc.)."""
+class UnprocessableEntityException(DomainException):
+    """
+    HTTP 422 - the request was well-formed but its content was refused.
+
+    Named after the status code on purpose. The tax service answers 422 for
+    any content it will not process, and only some of those cases involve a
+    phone: a receipt whose operationTime is in the future comes back as 422
+    too. The inherited name below made that read as "PhoneException", which
+    sent people looking for an SMS problem that did not exist.
+    """
+
+
+#: Historical name for the same class, kept because it is part of the
+#: published API and is genuinely apt during SMS authentication. Both names
+#: refer to one class, so `except PhoneException` keeps catching every 422.
+PhoneException = UnprocessableEntityException
 
 
 class ServerException(DomainException):
     """HTTP 500 - Internal server error."""
 
 
+class RateLimitException(DomainException):
+    """
+    HTTP 429 - too many requests.
+
+    Distinct from UnknownErrorException on purpose: the caller must be able to
+    tell "slow down and come back" from "something unrecognised broke".
+    ``retry_after`` carries the Retry-After header in seconds when the API
+    sends one.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        response: httpx.Response | None = None,
+        retry_after: float | None = None,
+    ):
+        super().__init__(message, response)
+        self.retry_after = retry_after
+
+
+class ServiceUnavailableException(ServerException):
+    """
+    HTTP 502, 503, 504 - the service is temporarily unreachable.
+
+    Subclasses ServerException because these are server-side failures: code
+    that already handles ServerException keeps working. Split out because a
+    gateway error or scheduled maintenance at the tax service is worth
+    retrying, unlike a genuine 500.
+    """
+
+
 class UnknownErrorException(DomainException):
     """Unknown HTTP error code."""
+
+
+class NetworkException(DomainException):
+    """
+    No response was received at all.
+
+    The decisive distinction in this hierarchy: every exception above means
+    the tax service answered and refused, this one means it never answered.
+    The first is fixed by a human, the second by trying again. Conflating them
+    makes callers revoke access or demand re-linking of an account that is
+    perfectly fine.
+
+    ``response`` is always None. ``request_may_have_been_sent`` says whether
+    the request could already have reached the server — decisive for
+    non-idempotent calls such as issuing a receipt.
+    """
+
+    #: Conservative default: assume the server may have seen the request.
+    request_may_have_been_sent = True
+
+    def __init__(self, message: str, request: httpx.Request | None = None):
+        super().__init__(message, None)
+        self.request = request
+
+
+class ConnectionException(NetworkException):
+    """
+    The connection was never established, so the request never left.
+
+    Safe to retry even for non-idempotent calls: the server cannot have
+    created anything from a request it never received.
+    """
+
+    request_may_have_been_sent = False
+
+
+class TimeoutException(NetworkException):
+    """
+    The request was sent but no reply arrived in time.
+
+    NOT safe to blind-retry a receipt: the tax service may have processed it
+    and only the answer was lost.
+    """
+
+
+def wrap_transport_error(exc: Exception, request: httpx.Request | None = None) -> Never:
+    """
+    Re-raise an httpx transport failure as the library's NetworkException.
+
+    Deliberately diverges from the PHP original, where transport errors escape
+    as the HTTP client's own type: callers of this library catch
+    DomainException, and a raw httpx error would slip past every handler they
+    wrote.
+    """
+    url = mask_url(str(request.url)) if request is not None else "the API"
+    detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+
+    if isinstance(exc, httpx.ConnectError | httpx.ConnectTimeout | httpx.PoolTimeout):
+        # Handshake never completed, or no connection was free: nothing was
+        # transmitted, so a retry cannot duplicate anything.
+        raise ConnectionException(
+            f"Could not connect to {url} ({detail})", request
+        ) from exc
+    if isinstance(exc, httpx.TimeoutException):
+        raise TimeoutException(
+            f"No response from {url} in time ({detail})", request
+        ) from exc
+    raise NetworkException(f"Request to {url} failed ({detail})", request) from exc
 
 
 class InputException(DomainException, ValueError):  # noqa: N818
@@ -132,18 +255,45 @@ class DateTimeFormatException(InputException):
     """Datetime string that cannot be parsed as ISO 8601."""
 
 
+_UNAVAILABLE_STATUSES = frozenset(
+    {
+        HTTPStatus.BAD_GATEWAY,
+        HTTPStatus.SERVICE_UNAVAILABLE,
+        HTTPStatus.GATEWAY_TIMEOUT,
+    }
+)
+
+
+def _parse_retry_after(response: httpx.Response) -> float | None:
+    """Read Retry-After as seconds. Only the delta-seconds form is handled."""
+    raw = response.headers.get("Retry-After")
+    if not raw:
+        return None
+    try:
+        return float(raw.strip())
+    except ValueError:
+        # HTTP-date form; callers get None and fall back to their own backoff
+        return None
+
+
 def raise_for_status(response: httpx.Response) -> None:
     """
     Raise appropriate domain exception based on HTTP status code.
 
-    Maps status codes to exceptions exactly like PHP ErrorHandler:
+    Maps status codes to exceptions. 400, 401, 403, 404, 406, 422 and 500
+    follow PHP ErrorHandler exactly. 429 and 502/503/504 are ours: the PHP
+    original lumps them into the catch-all, which leaves the caller unable to
+    tell "wait and retry" from "something unrecognised broke".
+
     - 400: ValidationException
     - 401: UnauthorizedException
     - 403: ForbiddenException
     - 404: NotFoundException
     - 406: ClientException
-    - 422: PhoneException
+    - 422: UnprocessableEntityException (alias: PhoneException)
+    - 429: RateLimitException (carries retry_after)
     - 500: ServerException
+    - 502, 503, 504: ServiceUnavailableException
     - default: UnknownErrorException
 
     Args:
@@ -168,7 +318,11 @@ def raise_for_status(response: httpx.Response) -> None:
     if response.status_code == HTTPStatus.NOT_ACCEPTABLE:
         raise ClientException("Wrong Accept headers", response)
     if response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
-        raise PhoneException(body, response)
+        raise UnprocessableEntityException(body, response)
+    if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
+        raise RateLimitException(body, response, _parse_retry_after(response))
     if response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
         raise ServerException(body, response)
+    if response.status_code in _UNAVAILABLE_STATUSES:
+        raise ServiceUnavailableException(body, response)
     raise UnknownErrorException(body, response)

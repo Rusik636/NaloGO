@@ -64,6 +64,7 @@ class Client:
             base_url=base_url,
             storage_path=storage_path,
             device_id=device_id,
+            timeout=timeout,
         )
 
         self.http_client = AsyncHTTPClient(
@@ -80,6 +81,22 @@ class Client:
 
         # User profile data (for receipt operations)
         self._user_profile: dict[str, Any] | None = None
+
+    async def aclose(self) -> None:
+        """
+        Close pooled HTTP connections.
+
+        Both the API client and the auth provider keep a connection pool alive
+        for reuse; this releases them. Safe to call more than once.
+        """
+        await self.http_client.aclose()
+        await self.auth_provider.aclose()
+
+    async def __aenter__(self) -> "Client":
+        return self
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        await self.aclose()
 
     async def create_new_access_token(self, username: str, password: str) -> str:
         """

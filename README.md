@@ -400,6 +400,74 @@ async def get_tax_info():
     print(f"💸 История платежей получена")
 ```
 
+## Сетевые сбои и токены
+
+Библиотека различает два исхода, которые нельзя путать: **ФНС ответила и
+отказала** — чинится действием человека; **ФНС не ответила** — чинится
+повтором.
+
+```python
+from nalogo import (
+    Client, DomainException, NetworkException,
+    RateLimitException, ServiceUnavailableException, UnauthorizedException,
+)
+
+try:
+    await client.income().create("Услуга", 5000)
+except NetworkException:
+    # Ответа не было. Доступ цел, просить перепривязать кабинет не надо.
+    ...
+except RateLimitException as e:
+    await asyncio.sleep(e.retry_after or 60)
+except ServiceUnavailableException:
+    # 502/503/504 — плановые работы или шлюз. Повторить позже.
+    ...
+except UnauthorizedException:
+    # Вот теперь действительно нужна повторная авторизация.
+    ...
+except DomainException:
+    ...
+```
+
+`NetworkException` наследует `DomainException`, поэтому общий обработчик
+ловит и его.
+
+### Повторы
+
+Идемпотентные запросы (`GET`) повторяются до трёх раз с экспоненциальной
+задержкой и джиттером. **Выдача чека — нет:** `POST /income` не идемпотентен
+на стороне ФНС, слепой повтор мог бы выписать второй документ. Он повторяется
+только тогда, когда запрос заведомо не ушёл — соединение не установилось:
+
+```python
+except ConnectionException:
+    # request_may_have_been_sent is False — сервер запроса не видел
+    ...
+except TimeoutException:
+    # Запрос ушёл, ответ не пришёл. Чек мог быть создан — проверьте,
+    # прежде чем повторять.
+    ...
+```
+
+Отключить повторы: `client.http_client.max_attempts = 1`.
+
+### Токены
+
+Обновление упреждающее — за минуту до истечения, по полю `tokenExpireIn`.
+Лишнего запроса с гарантированным 401 не происходит. Параллельные запросы,
+получившие 401, вызывают ровно одно обновление: ФНС ротирует refresh-токен,
+и второе обновление ушло бы по уже использованному.
+
+### Освобождение соединений
+
+Клиент держит пул соединений открытым для переиспользования:
+
+```python
+async with Client(storage_path="./tokens.json") as client:
+    ...
+# либо явно: await client.aclose()
+```
+
 ## Безопасность
 
 ### Хранение токенов
@@ -441,7 +509,7 @@ logger = logging.getLogger("nalogo")
 from nalogo.exceptions import (
     UnauthorizedException,
     ValidationException,
-    PhoneException,
+    UnprocessableEntityException,
     DomainException
 )
 
@@ -455,7 +523,7 @@ async def safe_operation():
         print("❌ Неверный ИНН или пароль")
     except ValidationException as e:
         print(f"❌ Ошибка валидации: {e}")
-    except PhoneException as e:
+    except UnprocessableEntityException as e:
         print(f"📱 Ошибка SMS: {e}")
     except DomainException as e:
         print(f"🚨 API ошибка: {e}")

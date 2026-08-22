@@ -12,35 +12,47 @@ License: MIT
 from .client import Client
 from .exceptions import (
     ClientException,
+    ConnectionException,
     DateTimeFormatException,
     DomainException,
     ForbiddenException,
     InputException,
+    NetworkException,
     NotFoundException,
     PhoneException,
+    RateLimitException,
     ServerException,
+    ServiceUnavailableException,
+    TimeoutException,
     TimezoneException,
     UnauthorizedException,
     UnknownErrorException,
+    UnprocessableEntityException,
     ValidationException,
 )
 from .timezone import API_TIMEZONE, DEFAULT_INPUT_TIMEZONE
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __all__ = [
     "API_TIMEZONE",
     "DEFAULT_INPUT_TIMEZONE",
     "Client",
     "ClientException",
+    "ConnectionException",
     "DateTimeFormatException",
     "DomainException",
     "ForbiddenException",
     "InputException",
+    "NetworkException",
     "NotFoundException",
     "PhoneException",
+    "RateLimitException",
     "ServerException",
+    "ServiceUnavailableException",
+    "TimeoutException",
     "TimezoneException",
     "UnauthorizedException",
     "UnknownErrorException",
+    "UnprocessableEntityException",
     "ValidationException",
 ]
