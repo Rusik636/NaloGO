@@ -509,7 +509,7 @@ logger = logging.getLogger("nalogo")
 from nalogo.exceptions import (
     UnauthorizedException,
     ValidationException,
-    PhoneException,
+    UnprocessableEntityException,
     DomainException
 )
 
@@ -523,7 +523,7 @@ async def safe_operation():
         print("❌ Неверный ИНН или пароль")
     except ValidationException as e:
         print(f"❌ Ошибка валидации: {e}")
-    except PhoneException as e:
+    except UnprocessableEntityException as e:
         print(f"📱 Ошибка SMS: {e}")
     except DomainException as e:
         print(f"🚨 API ошибка: {e}")

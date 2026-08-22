@@ -112,8 +112,22 @@ class ClientException(DomainException):
     """HTTP 406 - Client error (e.g., wrong Accept headers)."""
 
 
-class PhoneException(DomainException):
-    """HTTP 422 - Phone-related error (SMS, verification, etc.)."""
+class UnprocessableEntityException(DomainException):
+    """
+    HTTP 422 - the request was well-formed but its content was refused.
+
+    Named after the status code on purpose. The tax service answers 422 for
+    any content it will not process, and only some of those cases involve a
+    phone: a receipt whose operationTime is in the future comes back as 422
+    too. The inherited name below made that read as "PhoneException", which
+    sent people looking for an SMS problem that did not exist.
+    """
+
+
+#: Historical name for the same class, kept because it is part of the
+#: published API and is genuinely apt during SMS authentication. Both names
+#: refer to one class, so `except PhoneException` keeps catching every 422.
+PhoneException = UnprocessableEntityException
 
 
 class ServerException(DomainException):
@@ -276,7 +290,7 @@ def raise_for_status(response: httpx.Response) -> None:
     - 403: ForbiddenException
     - 404: NotFoundException
     - 406: ClientException
-    - 422: PhoneException
+    - 422: UnprocessableEntityException (alias: PhoneException)
     - 429: RateLimitException (carries retry_after)
     - 500: ServerException
     - 502, 503, 504: ServiceUnavailableException
@@ -304,7 +318,7 @@ def raise_for_status(response: httpx.Response) -> None:
     if response.status_code == HTTPStatus.NOT_ACCEPTABLE:
         raise ClientException("Wrong Accept headers", response)
     if response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY:
-        raise PhoneException(body, response)
+        raise UnprocessableEntityException(body, response)
     if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
         raise RateLimitException(body, response, _parse_retry_after(response))
     if response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:

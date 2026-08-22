@@ -21,10 +21,13 @@ from nalogo import (
     Client,
     DomainException,
     NetworkException,
+    PhoneException,
     RateLimitException,
     ServerException,
     ServiceUnavailableException,
     UnauthorizedException,
+    UnprocessableEntityException,
+    ValidationException,
 )
 from nalogo._http import AsyncHTTPClient, AuthProvider
 from nalogo.auth import AuthProviderImpl
@@ -526,3 +529,52 @@ class TestConnectionReuse:
         # A closed client must not poison the instance.
         await client.user().get()
         assert client.http_client._client is not None
+
+
+class TestUnprocessableEntityNaming:
+    """
+    422 used to surface as PhoneException regardless of what failed.
+
+    A receipt rejected for a future operationTime came back as an exception
+    named after phones, which sent people looking for an SMS problem that did
+    not exist (see the report in issue #2).
+    """
+
+    def test_both_names_are_one_class(self):
+        assert PhoneException is UnprocessableEntityException
+
+    @respx.mock
+    async def test_receipt_422_no_longer_reads_as_a_phone_error(self):
+        respx.post(INCOME_URL).mock(
+            return_value=httpx.Response(
+                422,
+                json={
+                    "code": "validation.failed",
+                    "message": "Время формирования запроса не может быть больше текущего",
+                },
+            )
+        )
+        client = await make_client()
+
+        with pytest.raises(UnprocessableEntityException) as exc:
+            await client.income().create("Услуга", 100)
+        assert type(exc.value).__name__ == "UnprocessableEntityException"
+
+    @respx.mock
+    async def test_existing_handlers_keep_working(self):
+        """The old name is an alias, so code written against it still catches."""
+        respx.post(INCOME_URL).mock(return_value=httpx.Response(422, text="rejected"))
+        client = await make_client()
+
+        with pytest.raises(PhoneException):
+            await client.income().create("Услуга", 100)
+
+    @respx.mock
+    async def test_still_distinct_from_400(self):
+        respx.get(USER_URL).mock(return_value=httpx.Response(422, text="rejected"))
+        client = await make_client()
+
+        with pytest.raises(UnprocessableEntityException) as exc:
+            await client.user().get()
+        assert not isinstance(exc.value, ValidationException)
+        assert exc.value.response.status_code == 422

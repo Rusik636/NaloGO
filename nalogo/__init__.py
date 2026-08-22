@@ -27,6 +27,7 @@ from .exceptions import (
     TimezoneException,
     UnauthorizedException,
     UnknownErrorException,
+    UnprocessableEntityException,
     ValidationException,
 )
 from .timezone import API_TIMEZONE, DEFAULT_INPUT_TIMEZONE
@@ -52,5 +53,6 @@ __all__ = [
     "TimezoneException",
     "UnauthorizedException",
     "UnknownErrorException",
+    "UnprocessableEntityException",
     "ValidationException",
 ]
